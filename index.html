@@ -14,6 +14,12 @@
 .rule b{display:block;color:#e8b95f;margin-bottom:4px}
 .dialog .wide{grid-column:1/-1}
 @media(max-width:750px){.world-tag{top:55px;font-size:8px}.world-actions{right:8px;bottom:78px;max-width:190px}.world-actions button{padding:7px;font-size:9px}.rule-list{grid-template-columns:1fr}}
+
+.meter-health,.meter-energy{height:7px;margin:5px 0 10px;background:#263a44;border-radius:9px;overflow:hidden}
+.meter-health i,.meter-energy i{display:block;height:100%;width:100%;border-radius:9px;transition:width .2s}
+.meter-health i{background:linear-gradient(90deg,#c74343,#ef7b67)}
+.meter-energy i{background:linear-gradient(90deg,#d99a35,#f0d16b)}
+@media(max-width:750px){.meter-health,.meter-energy{height:5px}}
 </style></head>
 <body><div id="app"><canvas id="world"></canvas>
 <div class="top"><div class="glass brand"><b>AFRICA LIFE</b><small>LA VIE N'A PAS DE LIMITES • CÔTE D'IVOIRE</small></div>
@@ -21,9 +27,9 @@
 <div class="side left"><section class="glass box"><h3>EXPLORER LE PAYS</h3><div class="cities" id="cities"></div><p id="description">Métropole, lagune Ébrié, quartiers vivants et grands boulevards.</p></section>
 <section class="glass box"><h3>VOTRE HISTOIRE</h3><p id="mission">Mission 01 — Trouver un endroit où passer la nuit. Explorez Abidjan, respectez le code de la route et faites vos premières rencontres.</p><div class="progress"><i id="bar"></i></div><p id="missionCount">Progression : 1 / 20</p></section></div>
 <div class="side right"><section class="glass box"><h3>GARAGE & MOBILITÉ</h3><div id="garage"></div><p>Approchez-vous et appuyez sur E pour monter ou descendre. Utilisez les flèches pour conduire.</p></section>
-<section class="glass box"><h3>VIE & RÉPUTATION</h3><div class="row"><div>Énergie<small>Votre forme</small></div><b id="energy">86%</b></div><div class="row"><div>Réseau<small>Vos contacts</small></div><b>3 contacts</b></div><div class="row"><div>Style de vie<small>Votre niveau</small></div><b id="level">Débrouillard</b></div><button class="btn gold" style="width:100%;margin-top:10px" onclick="openActivities()">ACTIVITÉS & SORTIES</button></section></div>
-<div class="glass bottom"><span><i class="key">ZQSD/WASD</i> Déplacer</span><span><i class="key">E</i> Entrer / sortir</span><span><i class="key">ESPACE</i> Mission</span><span><i class="key">M</i> Activités</span><span><i class="key">R</i> Code route</span><span><i class="key">P</i> MACA</span><span><i class="key">↑ ↓</i> Conduire</span></div>
-<div class="glass world-tag">MONDE VIVANT • CIRCULATION • PIÉTONS • LOISIRS</div><div class="world-actions"><button onclick="openRoadRules()">🚦 Code de la route</button><button onclick="openPlaces()">📍 Quartiers</button><button onclick="openPrison()">🚔 MACA</button></div><div class="glass toast" id="toast"></div><div class="modal" id="modal"><div class="dialog"><div id="modalBody"></div><div style="text-align:right"><button class="btn" onclick="closeModal()">Fermer</button></div></div></div></div>
+<section class="glass box"><h3>VIE & RÉPUTATION</h3><div class="row"><div>❤️ Vie<small>Santé du personnage</small></div><b id="health">100%</b></div><div class="progress meter-health"><i id="healthBar"></i></div><div class="row"><div>⚡ Énergie<small>Endurance disponible</small></div><b id="energy">86%</b></div><div class="progress meter-energy"><i id="energyBar"></i></div><div class="row"><div>Réseau<small>Vos contacts</small></div><b>3 contacts</b></div><div class="row"><div>Style de vie<small>Votre niveau</small></div><b id="level">Débrouillard</b></div><button class="btn gold" style="width:100%;margin-top:10px" onclick="openActivities()">ACTIVITÉS & SORTIES</button></section></div>
+<div class="glass bottom"><span><i class="key">ZQSD/WASD</i> Déplacer</span><span><i class="key">SHIFT</i> Courir</span><span><i class="key">E</i> Entrer / sortir</span><span><i class="key">ESPACE</i> Mission</span><span><i class="key">M</i> Activités</span><span><i class="key">R</i> Code route</span><span><i class="key">P</i> MACA</span><span><i class="key">↑ ↓</i> Conduire</span></div>
+<div class="glass world-tag">MONDE VIVANT • PIÉTONS • OBSTACLES • LOISIRS</div><div class="world-actions"><button onclick="openRoadRules()">🚦 Code de la route</button><button onclick="openPlaces()">📍 Quartiers</button><button onclick="openPrison()">🚔 MACA</button></div><div class="glass toast" id="toast"></div><div class="modal" id="modal"><div class="dialog"><div id="modalBody"></div><div style="text-align:right"><button class="btn" onclick="closeModal()">Fermer</button></div></div></div></div>
 <script>
 const $=id=>document.getElementById(id),cv=$('world'),ctx=cv.getContext('2d');let W,H;
 const cities=[
@@ -44,9 +50,13 @@ const fleet=[
 ['🚗','Citadine','Voiture',0,3],['🚙','4×4 tout-terrain','SUV',350000,3.7],['🚘','Berline de luxe','Luxe',1800000,4.4],['🏎️','Supercar','Sport',12000000,5.8],['🏍️','Moto sportive','Moto',650000,4.5],['🚚','Camion','Utilitaire',2500000,2.3],['🚌','Bus','Transport',4000000,2],['🚤','Bateau rapide','Nautique',3500000,3.8],['🛥️','Yacht privé','Nautique luxe',35000000,3.3]
 ];
 let city='Abidjan',money=125000,rep=12,energy=86,owned=[0],vehicle=null,mission=1,clock=1000,player={x:0,y:0,a:0},keys={};
-let roadRespect=100,wanted=0,inPrison=false,prisonDays=0,worldTick=0,traffic=[],pedestrians=[],partyPeople=[];
+let roadRespect=100,wanted=0,inPrison=false,prisonDays=0,worldTick=0,traffic=[],pedestrians=[],partyPeople=[],obstacles=[],health=100,lastDamage=0,lastDrain=0;
 const places=[['🏙️','Plateau','Tours, bureaux et circulation dense.'],['🌉','Cocody','Villas, universités, restaurants et quartiers résidentiels.'],['🌃','Yopougon','Maquis, musique, commerces et vie nocturne.'],['🌴','Marcory','Restaurants, commerces et lieux de sortie.'],['🏖️','Treichville','Marchés, gare, commerces et ambiance urbaine.'],['🚔','MACA','Maison d’arrêt et de correction d’Abidjan.']];
-function seedWorld(){traffic=Array.from({length:12},(_,i)=>({x:(i*137)%Math.max(W,1),y:i%2?H*.445:H*.555,dir:i%2?1:-1,speed:.6+(i%4)*.25,color:['#e5e7e4','#d7ad50','#a54b36','#4f86a5'][i%4]}));pedestrians=Array.from({length:28},(_,i)=>({x:(i*113+60)%Math.max(W,1),y:(i*71+90)%(H*.82),phase:i*.8,speed:.25+(i%4)*.12,color:['#e8b95f','#d88f6a','#e6ded0','#75a88a'][i%4]}));partyPeople=Array.from({length:10},(_,i)=>({x:(i*149+100)%Math.max(W,1),y:H*.25+(i%3)*28,phase:i}));}
+function seedWorld(){traffic=Array.from({length:12},(_,i)=>({x:(i*137)%Math.max(W,1),y:i%2?H*.445:H*.555,dir:i%2?1:-1,speed:.6+(i%4)*.25,color:['#e5e7e4','#d7ad50','#a54b36','#4f86a5'][i%4]}));pedestrians=Array.from({length:28},(_,i)=>({x:(i*113+60)%Math.max(W,1),y:(i*71+90)%(H*.82),phase:i*.8,speed:.25+(i%4)*.12,color:['#e8b95f','#d88f6a','#e6ded0','#75a88a'][i%4]}));partyPeople=Array.from({length:10},(_,i)=>({x:(i*149+100)%Math.max(W,1),y:H*.25+(i%3)*28,phase:i}));
+ const types=['barrier','crate','cone','rock','pothole','construction'];
+ obstacles=Array.from({length:16},(_,i)=>({x:45+((i*173+67)%Math.max(W-90,120)),y:85+((i*97+43)%Math.max(H-170,120)),type:types[i%types.length],hit:false}));
+ obstacles=obstacles.filter(o=>Math.hypot(o.x-W/2,o.y-H/2)>85);
+}
 seedWorld();
 
 function resize(){W=innerWidth;H=innerHeight;cv.width=W*devicePixelRatio;cv.height=H*devicePixelRatio;ctx.setTransform(devicePixelRatio,0,0,devicePixelRatio,0,0);player.x=W/2;player.y=H/2}onresize=resize;resize();
@@ -73,13 +83,33 @@ pedestrians.forEach(p=>{p.phase+=.04;p.x+=Math.sin(p.phase)*p.speed*.6;p.y+=Math
 // Groupes qui dansent et s'amusent.
 partyPeople.forEach(p=>{let b=Math.abs(Math.sin(worldTick/12+p.phase))*4;ctx.fillStyle='#e8b95f';ctx.beginPath();ctx.arc(p.x,p.y-b,4,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#f3d18b';ctx.beginPath();ctx.moveTo(p.x,p.y);ctx.lineTo(p.x+Math.sin(worldTick/10+p.phase)*7,p.y-8-b);ctx.stroke()});
 
+
+// Obstacles : barrières de chantier, caisses, cônes, rochers et nids-de-poule.
+obstacles.forEach(o=>{
+ ctx.save();ctx.translate(o.x,o.y);
+ if(o.type==='barrier'||o.type==='construction'){
+  ctx.fillStyle='#e8b95f';ctx.fillRect(-15,-6,30,12);ctx.strokeStyle='#27333a';ctx.lineWidth=4;
+  for(let k=-10;k<=10;k+=10){ctx.beginPath();ctx.moveTo(k-3,-6);ctx.lineTo(k+3,6);ctx.stroke()}
+  ctx.fillStyle='#333';ctx.fillRect(-17,7,34,4);
+ }else if(o.type==='crate'){
+  ctx.fillStyle='#8c6039';ctx.fillRect(-10,-10,20,20);ctx.strokeStyle='#d4a36a';ctx.strokeRect(-10,-10,20,20);
+ }else if(o.type==='cone'){
+  ctx.fillStyle='#ed873e';ctx.beginPath();ctx.moveTo(0,-13);ctx.lineTo(9,10);ctx.lineTo(-9,10);ctx.closePath();ctx.fill();ctx.fillStyle='#fff';ctx.fillRect(-6,2,12,3);
+ }else if(o.type==='rock'){
+  ctx.fillStyle='#66716d';ctx.beginPath();ctx.moveTo(-11,7);ctx.lineTo(-8,-5);ctx.lineTo(1,-12);ctx.lineTo(11,-3);ctx.lineTo(9,8);ctx.closePath();ctx.fill();
+ }else{
+  ctx.fillStyle='#10191d';ctx.beginPath();ctx.ellipse(0,0,14,8,0,0,Math.PI*2);ctx.fill();ctx.strokeStyle='#68777a';ctx.stroke();
+ }
+ ctx.restore();
+});
+
 ctx.save();ctx.translate(player.x,player.y);ctx.rotate(player.a);
 if(vehicle){ctx.fillStyle=vehicle[2].includes('Nautique')?'#e4e8e4':'#e1b457';ctx.beginPath();ctx.roundRect(-20,-11,40,22,6);ctx.fill();ctx.fillStyle='#172c37';ctx.fillRect(-9,-8,17,16)}
 else{ctx.fillStyle='#e8b95f';ctx.beginPath();ctx.arc(0,0,9,0,7);ctx.fill();ctx.fillStyle='#f4d9b3';ctx.beginPath();ctx.arc(0,-3,4,0,7);ctx.fill()}
 ctx.restore();ctx.strokeStyle='#e8b95f99';ctx.beginPath();ctx.arc(player.x,player.y,28+Math.sin(Date.now()/250)*3,0,7);ctx.stroke();requestAnimationFrame(render)}
 render();
 function toast(t){$('toast').textContent=t;$('toast').classList.add('show');setTimeout(()=>$('toast').classList.remove('show'),2500)}
-function update(){ $('money').textContent=money.toLocaleString('fr-FR')+' FCFA';$('rep').textContent=rep+' / 100';$('cityName').textContent=city;$('energy').textContent=energy+'%';$('level').textContent=money>5000000?'Vie confortable':money>1000000?'En progression':'Débrouillard';$('bar').style.width=(mission/20*100)+'%';$('missionCount').textContent='Progression : '+mission+' / 20';$('cities').innerHTML=cities.map(c=>`<button class="city ${c[0]===city?'active':''}" onclick="travel('${c[0]}')">${c[1]} ${c[0]}</button>`).join('');$('description').textContent=cities.find(c=>c[0]===city)[2];$('garage').innerHTML=fleet.map((v,i)=>`<div class="row"><div>${v[0]} ${v[1]}<small>${v[2]} • ${v[3]?v[3].toLocaleString('fr-FR')+' FCFA':'Personnel'}</small></div>${owned.includes(i)?`<button class="btn" onclick="takeVehicle(${i})">Prendre</button>`:`<button class="btn" onclick="buy(${i})">Acheter</button>`}</div>`).join('')}
+function update(){ $('money').textContent=money.toLocaleString('fr-FR')+' FCFA';$('rep').textContent=rep+' / 100';$('cityName').textContent=city;$('energy').textContent=energy+'%';$('health').textContent=health+'%';$('healthBar').style.width=health+'%';$('energyBar').style.width=energy+'%';$('level').textContent=money>5000000?'Vie confortable':money>1000000?'En progression':'Débrouillard';$('bar').style.width=(mission/20*100)+'%';$('missionCount').textContent='Progression : '+mission+' / 20';$('cities').innerHTML=cities.map(c=>`<button class="city ${c[0]===city?'active':''}" onclick="travel('${c[0]}')">${c[1]} ${c[0]}</button>`).join('');$('description').textContent=cities.find(c=>c[0]===city)[2];$('garage').innerHTML=fleet.map((v,i)=>`<div class="row"><div>${v[0]} ${v[1]}<small>${v[2]} • ${v[3]?v[3].toLocaleString('fr-FR')+' FCFA':'Personnel'}</small></div>${owned.includes(i)?`<button class="btn" onclick="takeVehicle(${i})">Prendre</button>`:`<button class="btn" onclick="buy(${i})">Acheter</button>`}</div>`).join('')}
 function travel(n){if(vehicle){toast('Descendez du véhicule avant de voyager.');return}if(inPrison){toast('Vous devez terminer votre peine avant de voyager.');return}city=n;player.x=W/2;player.y=H/2;seedWorld();toast('Bienvenue à '+n+' !');update()}
 function buy(i){let v=fleet[i];if(money<v[3]){toast('Fonds insuffisants. Faites des missions ou travaillez.');return}money-=v[3];owned.push(i);toast(v[1]+' ajouté à votre garage.');update()}
 function takeVehicle(i){vehicle=fleet[i];toast('Vous conduisez : '+vehicle[1]+'.');update()}
@@ -94,8 +124,42 @@ function openActivities(){ $('modalBody').innerHTML=`<h2>VOTRE VIE EN CÔTE D’
 <button class="choice" onclick="activity('gym')"><b>🏋️ Sport & bien-être</b><small>Récupérer de l'énergie • +15 énergie</small></button>
 <button class="choice" onclick="activity('mission')"><b>🎯 Continuer l'histoire</b><small>Débloquer la prochaine mission</small></button></div>`;$('modal').classList.add('show')}
 function closeModal(){$('modal').classList.remove('show')}
-function activity(a){closeModal();if(a==='work'){money+=45000;rep+=2;mission++ ;toast('Travail terminé : +45 000 FCFA.')}if(a==='bassam'||a==='assinie'){let cost=a==='bassam'?35000:120000;if(money<cost){toast('Budget insuffisant pour cette sortie.');return}money-=cost;city=a==='bassam'?'Grand-Bassam':'Assinie';rep+=a==='bassam'?3:5;energy=Math.max(0,energy-8);toast(a==='bassam'?'Beach party à Bassam : plage, musique et rencontres !':'Week-end à Assinie : villa, lagune et fête privée !')}if(a==='villa'){if(money<10000){toast('Fonds insuffisants.');return}money-=10000;toast('Visite d’une villa contemporaine avec piscine.')}if(a==='boat'){if(money<25000){toast('Fonds insuffisants.');return}money-=25000;toast('Excursion en bateau sur la lagune et la côte.')}if(a==='social'){rep+=2;toast('Votre réseau s’agrandit.')}if(a==='gym'){energy=Math.min(100,energy+15);toast('Vous avez récupéré de l’énergie.')}if(a==='mission'){mission++;rep++;toast('Nouvel objectif débloqué.')}update()}
-function loop(){let dx=0,dy=0,s=vehicle?vehicle[4]:2.2;if(inPrison){dx=0;dy=0;}if(keys.w||keys.z||keys.arrowup)dy--;if(keys.s||keys.arrowdown)dy++;if(keys.a||keys.q||keys.arrowleft)dx--;if(keys.d||keys.arrowright)dx++;if(dx||dy){let l=Math.hypot(dx,dy);dx/=l;dy/=l;player.a=Math.atan2(dy,dx);player.x=Math.max(15,Math.min(W-15,player.x+dx*s));player.y=Math.max(15,Math.min(H-15,player.y+dy*s));clock=(clock+1)%1440;checkTrafficRules()}requestAnimationFrame(loop)}loop();
+function activity(a){closeModal();if(a==='work'){money+=45000;rep+=2;mission++ ;toast('Travail terminé : +45 000 FCFA.')}if(a==='bassam'||a==='assinie'){let cost=a==='bassam'?35000:120000;if(money<cost){toast('Budget insuffisant pour cette sortie.');return}money-=cost;city=a==='bassam'?'Grand-Bassam':'Assinie';rep+=a==='bassam'?3:5;energy=Math.max(0,energy-8);toast(a==='bassam'?'Beach party à Bassam : plage, musique et rencontres !':'Week-end à Assinie : villa, lagune et fête privée !')}if(a==='villa'){if(money<10000){toast('Fonds insuffisants.');return}money-=10000;toast('Visite d’une villa contemporaine avec piscine.')}if(a==='boat'){if(money<25000){toast('Fonds insuffisants.');return}money-=25000;toast('Excursion en bateau sur la lagune et la côte.')}if(a==='social'){rep+=2;toast('Votre réseau s’agrandit.')}if(a==='gym'){energy=Math.min(100,energy+15);health=Math.min(100,health+3);toast('Sport terminé : endurance et santé améliorées.')}if(a==='mission'){mission++;rep++;toast('Nouvel objectif débloqué.')}update()}
+
+function obstacleAt(x,y){return obstacles.find(o=>Math.hypot(x-o.x,y-o.y)<(o.type==='pothole'?12:19));}
+function collideWithObstacle(x,y){
+ const o=obstacleAt(x,y);if(!o)return false;
+ if(o.type==='pothole'){
+  if(!o.hit){health=Math.max(0,health-4);energy=Math.max(0,energy-3);o.hit=true;toast('Nid-de-poule ! -4 vie et -3 énergie.');update();}
+  return false;
+ }
+ if(Date.now()-lastDamage>900){health=Math.max(0,health-5);energy=Math.max(0,energy-2);lastDamage=Date.now();toast('Obstacle heurté ! -5 points de vie.');update();}
+ return true;
+}
+function recoverRest(){
+ if(money<3000){toast('Il vous faut 3 000 FCFA pour manger et vous reposer.');return}
+ money-=3000;health=Math.min(100,health+22);energy=Math.min(100,energy+35);
+ toast('Repas et repos : vie et énergie restaurées.');update();
+}
+function useFirstAid(){
+ if(money<8000){toast('Il vous faut 8 000 FCFA pour une trousse de secours.');return}
+ money-=8000;health=Math.min(100,health+40);toast('Trousse de secours : +40 points de vie.');update();
+}
+
+function loop(){let dx=0,dy=0,s=vehicle?vehicle[4]:2.2;if(inPrison){dx=0;dy=0;}if(keys.w||keys.z||keys.arrowup)dy--;if(keys.s||keys.arrowdown)dy++;if(keys.a||keys.q||keys.arrowleft)dx--;if(keys.d||keys.arrowright)dx++;
+if((dx||dy)&&!inPrison){
+ let l=Math.hypot(dx,dy);dx/=l;dy/=l;
+ let running=!!keys.shift&&energy>1&&!vehicle;
+ if(running){s*=1.65;if(Date.now()-lastDrain>350){energy=Math.max(0,energy-1);lastDrain=Date.now();update();}}
+ else if(!vehicle&&Date.now()-lastDrain>1800){energy=Math.min(100,energy+1);lastDrain=Date.now();update();}
+ if(energy<=0&&!vehicle)s=Math.min(s,1.15);
+ player.a=Math.atan2(dy,dx);
+ let nx=Math.max(15,Math.min(W-15,player.x+dx*s)),ny=Math.max(15,Math.min(H-15,player.y+dy*s));
+ if(!collideWithObstacle(nx,ny)){player.x=nx;player.y=ny;}
+ clock=(clock+1)%1440;checkTrafficRules();
+}
+if(health<=0){health=0;energy=0;}
+requestAnimationFrame(loop)}loop();
 onkeydown=e=>{keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='e')enter();if(e.key.toLowerCase()==='m')openActivities();if(e.key.toLowerCase()==='r')openRoadRules();if(e.key.toLowerCase()==='p')openPrison();if(e.code==='Space'){e.preventDefault();mission++;rep++;update();toast('Mission suivante débloquée.')}};onkeyup=e=>keys[e.key.toLowerCase()]=false;
 setInterval(()=>{$('time').textContent=String(Math.floor(clock/60)%24).padStart(2,'0')+':'+String(clock%60).padStart(2,'0')},1500);update();
 
